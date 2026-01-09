@@ -58,6 +58,8 @@ export interface FirefoxLaunchOptions {
   args?: string[] | undefined;
   startUrl?: string | undefined;
   acceptInsecureCerts?: boolean | undefined;
+  env?: Record<string, string> | undefined;
+  logFile?: string | undefined;
 }
 
 /**

@@ -4,12 +4,18 @@
 
 import { Builder, Browser, WebDriver } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
+import { mkdirSync, openSync, closeSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { FirefoxLaunchOptions } from './types.js';
 import { log, logDebug } from '../utils/logger.js';
 
 export class FirefoxCore {
   private driver: WebDriver | null = null;
   private currentContextId: string | null = null;
+  private originalEnv: Record<string, string | undefined> = {};
+  private logFilePath: string | undefined;
+  private logFileFd: number | undefined;
 
   constructor(private options: FirefoxLaunchOptions) {}
 
@@ -18,6 +24,31 @@ export class FirefoxCore {
    */
   async connect(): Promise<void> {
     log('🚀 Launching Firefox via Selenium WebDriver BiDi...');
+
+    // Set up output file for capturing Firefox stdout/stderr
+    if (this.options.logFile) {
+      this.logFilePath = this.options.logFile;
+    } else if (this.options.env && Object.keys(this.options.env).length > 0) {
+      const outputDir = join(homedir(), '.firefox-devtools-mcp', 'output');
+      mkdirSync(outputDir, { recursive: true });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      this.logFilePath = join(outputDir, `firefox-${timestamp}.log`);
+    }
+
+    // Set environment variables (will be inherited by geckodriver -> Firefox)
+    if (this.options.env) {
+      for (const [key, value] of Object.entries(this.options.env)) {
+        this.originalEnv[key] = process.env[key];
+        process.env[key] = value;
+        logDebug(`Set env ${key}=${value}`);
+      }
+
+      // Important: Do NOT set MOZ_LOG_FILE - MOZ_LOG writes to stderr by default
+      // We capture stderr directly through file descriptor redirection
+      if (this.options.env.MOZ_LOG_FILE) {
+        logDebug('Note: MOZ_LOG_FILE in env will be used, but may be blocked by sandbox');
+      }
+    }
 
     // Configure Firefox options
     const firefoxOptions = new firefox.Options();
@@ -50,10 +81,27 @@ export class FirefoxCore {
       firefoxOptions.setAcceptInsecureCerts(true);
     }
 
+    // Configure geckodriver service to capture output
+    const serviceBuilder = new firefox.ServiceBuilder();
+
+    // If we have a log file, open it and redirect geckodriver output there
+    // This captures both geckodriver logs and Firefox stderr (including MOZ_LOG)
+    if (this.logFilePath) {
+      // Open file for appending, create if doesn't exist
+      this.logFileFd = openSync(this.logFilePath, 'a');
+
+      // Configure stdio: stdin=ignore, stdout=logfile, stderr=logfile
+      // This redirects all output from geckodriver and Firefox to the log file
+      serviceBuilder.setStdio(['ignore', this.logFileFd, this.logFileFd]);
+
+      log(`📝 Capturing Firefox output to: ${this.logFilePath}`);
+    }
+
     // Build WebDriver instance
     this.driver = await new Builder()
       .forBrowser(Browser.FIREFOX)
       .setFirefoxOptions(firefoxOptions)
+      .setFirefoxService(serviceBuilder)
       .build();
 
     log('✅ Firefox launched with BiDi');
@@ -125,6 +173,20 @@ export class FirefoxCore {
   }
 
   /**
+   * Get log file path
+   */
+  getLogFilePath(): string | undefined {
+    return this.logFilePath;
+  }
+
+  /**
+   * Get current launch options
+   */
+  getOptions(): FirefoxLaunchOptions {
+    return this.options;
+  }
+
+  /**
    * Close driver and cleanup
    */
   async close(): Promise<void> {
@@ -132,6 +194,30 @@ export class FirefoxCore {
       await this.driver.quit();
       this.driver = null;
     }
+
+    // Close log file descriptor if open
+    if (this.logFileFd !== undefined) {
+      try {
+        closeSync(this.logFileFd);
+        logDebug('Log file closed');
+      } catch (error) {
+        logDebug(
+          `Error closing log file: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      this.logFileFd = undefined;
+    }
+
+    // Restore original environment variables
+    for (const [key, value] of Object.entries(this.originalEnv)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    this.originalEnv = {};
+
     log('✅ Firefox DevTools closed');
   }
 }
