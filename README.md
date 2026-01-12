@@ -100,7 +100,8 @@ You can pass flags or environment variables (names on the right):
 - Network: list/get (ID‑first, filters, always‑on capture)
 - Console: list/clear
 - Screenshot: page/by uid
-- Script: evaluate_script (content)
+- Script: evaluate_script (content), evaluate_chrome_script (privileged)
+- Chrome Context: list/select chrome contexts (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
 - Utilities: accept/dismiss dialog, history back/forward, set viewport
 
 ## Local development
