@@ -100,6 +100,7 @@ You can pass flags or environment variables (names on the right):
 - Network: list/get (ID‑first, filters, always‑on capture)
 - Console: list/clear
 - Screenshot: page/by uid
+- Script: evaluate_script (content)
 - Utilities: accept/dismiss dialog, history back/forward, set viewport
 
 ## Local development
