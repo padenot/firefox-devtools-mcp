@@ -1,5 +1,10 @@
 # Firefox DevTools MCP
 
+Note: this is a (temporary) fork containing some feature on top of upstream,
+aimed at making the life of Firefox developers easier. The goal is to upstream
+what makes sense once we get a sense of the value of our features for the
+general public (vs. firefox development).
+
 [![npm version](https://badge.fury.io/js/firefox-devtools-mcp.svg)](https://www.npmjs.com/package/firefox-devtools-mcp)
 [![CI](https://github.com/freema/firefox-devtools-mcp/workflows/CI/badge.svg)](https://github.com/freema/firefox-devtools-mcp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/freema/firefox-devtools-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/freema/firefox-devtools-mcp)
