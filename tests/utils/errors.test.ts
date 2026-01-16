@@ -6,15 +6,15 @@ describe('FirefoxDisconnectedError', () => {
     const error = new FirefoxDisconnectedError();
     expect(error.name).toBe('FirefoxDisconnectedError');
     expect(error.message).toContain('Firefox browser is not connected');
-    expect(error.message).toContain('ask the user to restart');
-    expect(error.message).toContain('firefox-devtools-mcp server');
+    expect(error.message).toContain('restart_firefox tool');
+    expect(error.message).toContain('firefoxPath parameter');
   });
 
   it('should create error with custom reason', () => {
     const error = new FirefoxDisconnectedError('Browser was closed');
     expect(error.message).toContain('Browser was closed');
     expect(error.message).toContain('Firefox browser is not connected');
-    expect(error.message).toContain('restart Claude Code or the MCP connection');
+    expect(error.message).toContain('restart_firefox tool');
   });
 
   it('should be instanceof Error', () => {

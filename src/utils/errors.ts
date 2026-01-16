@@ -11,10 +11,9 @@ export class FirefoxDisconnectedError extends Error {
   constructor(reason?: string) {
     const baseMessage = 'Firefox browser is not connected';
     const instruction =
-      'The Firefox browser window was closed by the user. ' +
-      'To continue browser automation, ask the user to restart the firefox-devtools-mcp server ' +
-      '(they need to restart Claude Code or the MCP connection). ' +
-      'This will launch a new Firefox instance.';
+      'The Firefox browser window was closed. ' +
+      'Use the restart_firefox tool with firefoxPath parameter to start a new Firefox instance. ' +
+      'Example: restart_firefox with firefoxPath="/usr/bin/firefox"';
 
     const fullMessage = reason
       ? `${baseMessage}: ${reason}. ${instruction}`

@@ -102,7 +102,7 @@ export async function handleSelectChromeContext(args: unknown): Promise<McpToolR
     await driver.switchTo().window(contextId);
 
     try {
-      await (driver as any).setContext('chrome');
+      await driver.setContext('chrome');
     } catch (contextError) {
       return errorResponse(
         new Error(
@@ -111,7 +111,9 @@ export async function handleSelectChromeContext(args: unknown): Promise<McpToolR
       );
     }
 
-    return successResponse(`✅ Switched to chrome context: ${contextId} (Marionette context set to chrome)`);
+    return successResponse(
+      `✅ Switched to chrome context: ${contextId} (Marionette context set to chrome)`
+    );
   } catch (error) {
     return errorResponse(error as Error);
   }

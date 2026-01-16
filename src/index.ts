@@ -78,6 +78,20 @@ export function setNextLaunchOptions(options: FirefoxLaunchOptions): void {
   log('Next launch options updated');
 }
 
+/**
+ * Check if Firefox is currently running (without auto-starting)
+ */
+export function isFirefoxRunning(): boolean {
+  return firefox !== null;
+}
+
+/**
+ * Get Firefox instance if running, null otherwise (no auto-start)
+ */
+export function getFirefoxIfRunning(): FirefoxDevTools | null {
+  return firefox;
+}
+
 export async function getFirefox(): Promise<FirefoxDevTools> {
   // If we have an existing instance, verify it's still connected
   if (firefox) {
@@ -127,10 +141,15 @@ export async function getFirefox(): Promise<FirefoxDevTools> {
   }
 
   firefox = new FirefoxDevTools(options);
-  await firefox.connect();
-  log('Firefox DevTools connection established');
-
-  return firefox;
+  try {
+    await firefox.connect();
+    log('Firefox DevTools connection established');
+    return firefox;
+  } catch (error) {
+    // Connection failed, clean up the failed instance
+    firefox = null;
+    throw error;
+  }
 }
 
 // Tool handler mapping
