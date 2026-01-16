@@ -4,7 +4,13 @@
  */
 
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { getFirefox, resetFirefox, setNextLaunchOptions } from '../index.js';
+import {
+  args,
+  getFirefox,
+  getFirefoxIfRunning,
+  resetFirefox,
+  setNextLaunchOptions,
+} from '../index.js';
 import { errorResponse, successResponse } from '../utils/response-helpers.js';
 
 // ============================================================================
@@ -217,9 +223,11 @@ export async function handleRestartFirefox(input: unknown) {
       startUrl?: string;
     };
 
-    // Get current Firefox instance to retrieve current options
-    const currentFirefox = await getFirefox();
-    const currentOptions = currentFirefox.getOptions();
+    // This tool is designed to be robust and never get stuck:
+    // - Handles disconnected Firefox gracefully (resets stale reference)
+    // - Handles close() errors (we're restarting anyway)
+    // - Works both as initial start and restart
+    // - Always leaves system in a clean state for next tool call
 
     // Parse new environment variables
     let newEnv: Record<string, string> | undefined;
@@ -233,49 +241,106 @@ export async function handleRestartFirefox(input: unknown) {
       }
     }
 
-    // Merge with current options, preferring new values
-    const newOptions = {
-      ...currentOptions,
-      firefoxPath: firefoxPath ?? currentOptions.firefoxPath,
-      env: newEnv !== undefined ? newEnv : currentOptions.env,
-      headless: headless !== undefined ? headless : currentOptions.headless,
-      startUrl: startUrl ?? currentOptions.startUrl ?? 'about:home',
-    };
+    // Check if Firefox is currently running and connected
+    const currentFirefox = getFirefoxIfRunning();
+    const isConnected = currentFirefox ? await currentFirefox.isConnected() : false;
 
-    // Set options for next launch
-    setNextLaunchOptions(newOptions);
+    if (currentFirefox && isConnected) {
+      // Firefox is running - restart with new config
+      const currentOptions = currentFirefox.getOptions();
 
-    // Close current instance
-    await currentFirefox.close();
-    resetFirefox();
+      // Merge with current options, preferring new values
+      const newOptions = {
+        ...currentOptions,
+        firefoxPath: firefoxPath ?? currentOptions.firefoxPath,
+        env: newEnv !== undefined ? newEnv : currentOptions.env,
+        headless: headless !== undefined ? headless : currentOptions.headless,
+        startUrl: startUrl ?? currentOptions.startUrl ?? 'about:home',
+      };
 
-    // Prepare change summary
-    const changes = [];
-    if (firefoxPath && firefoxPath !== currentOptions.firefoxPath) {
-      changes.push(`Binary: ${firefoxPath}`);
-    }
-    if (newEnv !== undefined && JSON.stringify(newEnv) !== JSON.stringify(currentOptions.env)) {
-      changes.push(`Environment variables updated:`);
-      for (const [key, value] of Object.entries(newEnv)) {
-        changes.push(`  ${key}=${value}`);
+      // Set options for next launch
+      setNextLaunchOptions(newOptions);
+
+      // Close current instance (ignore errors - we're restarting anyway)
+      try {
+        await currentFirefox.close();
+      } catch (error) {
+        // Ignore close errors - we'll reset anyway
       }
-    }
-    if (headless !== undefined && headless !== currentOptions.headless) {
-      changes.push(`Headless: ${headless ? 'enabled' : 'disabled'}`);
-    }
-    if (startUrl && startUrl !== currentOptions.startUrl) {
-      changes.push(`Start URL: ${startUrl}`);
-    }
+      resetFirefox();
 
-    if (changes.length === 0) {
+      // Prepare change summary
+      const changes = [];
+      if (firefoxPath && firefoxPath !== currentOptions.firefoxPath) {
+        changes.push(`Binary: ${firefoxPath}`);
+      }
+      if (newEnv !== undefined && JSON.stringify(newEnv) !== JSON.stringify(currentOptions.env)) {
+        changes.push(`Environment variables updated:`);
+        for (const [key, value] of Object.entries(newEnv)) {
+          changes.push(`  ${key}=${value}`);
+        }
+      }
+      if (headless !== undefined && headless !== currentOptions.headless) {
+        changes.push(`Headless: ${headless ? 'enabled' : 'disabled'}`);
+      }
+      if (startUrl && startUrl !== currentOptions.startUrl) {
+        changes.push(`Start URL: ${startUrl}`);
+      }
+
+      if (changes.length === 0) {
+        return successResponse(
+          '✅ Firefox closed. Will restart with same configuration on next tool call.'
+        );
+      }
+
       return successResponse(
-        '✅ Firefox closed. Will restart with same configuration on next tool call.'
+        `✅ Firefox closed. Will restart with new configuration on next tool call:\n${changes.join('\n')}`
+      );
+    } else {
+      // Firefox not running (or disconnected) - configure for first start
+      if (currentFirefox) {
+        // Had a stale disconnected reference, clean it up
+        resetFirefox();
+      }
+
+      // Use provided firefoxPath, or fall back to CLI args if available
+      const resolvedFirefoxPath = firefoxPath ?? args.firefoxPath ?? undefined;
+
+      if (!resolvedFirefoxPath) {
+        return errorResponse(
+          new Error(
+            'Firefox is not running and no firefoxPath provided. Please specify firefoxPath to start Firefox.'
+          )
+        );
+      }
+
+      const newOptions = {
+        firefoxPath: resolvedFirefoxPath,
+        env: newEnv,
+        headless: headless ?? false,
+        startUrl: startUrl ?? 'about:home',
+      };
+
+      setNextLaunchOptions(newOptions);
+
+      const config = [`Binary: ${resolvedFirefoxPath}`];
+      if (newEnv) {
+        config.push('Environment variables:');
+        for (const [key, value] of Object.entries(newEnv)) {
+          config.push(`  ${key}=${value}`);
+        }
+      }
+      if (headless) {
+        config.push('Headless: enabled');
+      }
+      if (startUrl) {
+        config.push(`Start URL: ${startUrl}`);
+      }
+
+      return successResponse(
+        `✅ Firefox configured. Will start on next tool call:\n${config.join('\n')}`
       );
     }
-
-    return successResponse(
-      `✅ Firefox closed. Will restart with new configuration on next tool call:\n${changes.join('\n')}`
-    );
   } catch (error) {
     return errorResponse(error as Error);
   }
