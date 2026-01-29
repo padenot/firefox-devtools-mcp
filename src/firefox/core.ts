@@ -74,7 +74,10 @@ export class FirefoxCore {
     }
 
     if (this.options.profilePath) {
-      firefoxOptions.setProfile(this.options.profilePath);
+      // Use Firefox's native --profile argument for reliable profile loading
+      // (Selenium's setProfile() copies to temp dir which can be unreliable)
+      firefoxOptions.addArguments('--profile', this.options.profilePath);
+      log(`📁 Using Firefox profile: ${this.options.profilePath}`);
     }
 
     if (this.options.acceptInsecureCerts) {
