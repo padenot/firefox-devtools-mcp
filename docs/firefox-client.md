@@ -141,6 +141,7 @@ Selenium automatically manages Firefox through geckodriver:
 --firefox-path <path>    # Firefox executable path
 --headless               # Run Firefox headless
 --viewport <WxH>         # Set viewport size (e.g., 1280x720)
+--profile-path <path>    # Firefox profile path
 --start-url <url>        # Initial URL to navigate to
 ```
 
@@ -151,9 +152,9 @@ START_URL=https://example.com
 ```
 
 **Profile Management:**
-- Selenium creates temporary profiles automatically
-- Custom profile support via `firefoxOptions.setProfile()`
-- Automatic cleanup on shutdown
+- Use `--profile-path` to specify a Firefox profile directory
+- Profile is loaded in-place via Firefox's native `--profile` argument (not copied to temp)
+- Runtime profile changes supported via `restart_firefox` tool's `profilePath` parameter
 
 ## Available Tools
 
@@ -187,6 +188,18 @@ The server provides comprehensive browser automation tools:
 | `start_network_monitoring` | Enable network capture | ✅ Implemented |
 | `stop_network_monitoring` | Disable network capture | ✅ Implemented |
 | `performance_get_metrics` | Get timing metrics | ✅ Via `performance` API |
+
+### Firefox Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_firefox_info` | Get current Firefox configuration | (none) |
+| `get_firefox_output` | Get Firefox stdout/stderr/MOZ_LOG output | `lines`, `grep`, `since` |
+| `restart_firefox` | Restart or configure Firefox | `firefoxPath`, `profilePath`, `env`, `headless`, `startUrl` |
+
+**Note:** `restart_firefox` works in two modes:
+- If Firefox is running: closes and restarts with new configuration
+- If Firefox is not running: configures options for next tool call that triggers launch
 
 ✅ = Fully implemented
 
