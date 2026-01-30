@@ -109,8 +109,19 @@ describe('Firefox Prefs Tool Handlers', () => {
       expect(result.content[0].text).toContain('No preferences to set');
     });
 
-    it('should return error when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS is not set', async () => {
+    it('should return helpful error when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS results in no chrome contexts', async () => {
       delete process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS;
+
+      // Without MOZ_REMOTE_ALLOW_SYSTEM_ACCESS, no chrome contexts are available
+      mockSendBiDiCommand.mockResolvedValue({ contexts: [] });
+
+      const mockFirefox = {
+        sendBiDiCommand: mockSendBiDiCommand,
+        getDriver: vi.fn(),
+        getCurrentContextId: vi.fn(),
+      };
+
+      mockGetFirefox.mockResolvedValue(mockFirefox);
 
       const result = await handleSetFirefoxPrefs({ prefs: { 'test.pref': 'value' } });
 
@@ -205,6 +216,29 @@ describe('Firefox Prefs Tool Handlers', () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('No chrome contexts');
     });
+
+    it('should call getFirefox even when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS not in process.env', async () => {
+      delete process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS;
+
+      mockSendBiDiCommand.mockResolvedValue({
+        contexts: [{ context: 'chrome-context-id' }],
+      });
+      const mockFirefox = {
+        sendBiDiCommand: mockSendBiDiCommand,
+        getDriver: vi.fn().mockReturnValue({
+          switchTo: () => ({ window: mockSwitchToWindow }),
+          setContext: mockSetContext,
+          executeScript: mockExecuteScript,
+        }),
+        getCurrentContextId: vi.fn().mockReturnValue('content-context-id'),
+      };
+      mockGetFirefox.mockResolvedValue(mockFirefox);
+
+      const result = await handleSetFirefoxPrefs({ prefs: { 'test.pref': 'value' } });
+
+      expect(mockGetFirefox).toHaveBeenCalled();
+      expect(result.isError).toBeUndefined();
+    });
   });
 
   describe('handleGetFirefoxPrefs', () => {
@@ -222,8 +256,19 @@ describe('Firefox Prefs Tool Handlers', () => {
       expect(result.content[0].text).toContain('names parameter is required');
     });
 
-    it('should return error when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS is not set', async () => {
+    it('should return helpful error when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS results in no chrome contexts', async () => {
       delete process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS;
+
+      // Without MOZ_REMOTE_ALLOW_SYSTEM_ACCESS, no chrome contexts are available
+      mockSendBiDiCommand.mockResolvedValue({ contexts: [] });
+
+      const mockFirefox = {
+        sendBiDiCommand: mockSendBiDiCommand,
+        getDriver: vi.fn(),
+        getCurrentContextId: vi.fn(),
+      };
+
+      mockGetFirefox.mockResolvedValue(mockFirefox);
 
       const result = await handleGetFirefoxPrefs({ names: ['test.pref'] });
 
@@ -304,6 +349,30 @@ describe('Firefox Prefs Tool Handlers', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('No chrome contexts');
+    });
+
+    it('should call getFirefox even when MOZ_REMOTE_ALLOW_SYSTEM_ACCESS not in process.env', async () => {
+      delete process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS;
+
+      mockSendBiDiCommand.mockResolvedValue({
+        contexts: [{ context: 'chrome-context-id' }],
+      });
+      mockExecuteScript.mockResolvedValue({ exists: true, value: 'test-value' });
+      const mockFirefox = {
+        sendBiDiCommand: mockSendBiDiCommand,
+        getDriver: vi.fn().mockReturnValue({
+          switchTo: () => ({ window: mockSwitchToWindow }),
+          setContext: mockSetContext,
+          executeScript: mockExecuteScript,
+        }),
+        getCurrentContextId: vi.fn().mockReturnValue('content-context-id'),
+      };
+      mockGetFirefox.mockResolvedValue(mockFirefox);
+
+      const result = await handleGetFirefoxPrefs({ names: ['test.pref'] });
+
+      expect(mockGetFirefox).toHaveBeenCalled();
+      expect(result.isError).toBeUndefined();
     });
   });
 });

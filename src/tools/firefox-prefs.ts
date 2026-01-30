@@ -45,14 +45,6 @@ export async function handleSetFirefoxPrefs(args: unknown): Promise<McpToolRespo
       return successResponse('No preferences to set');
     }
 
-    // Check for MOZ_REMOTE_ALLOW_SYSTEM_ACCESS
-    if (!process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS) {
-      throw new Error(
-        'MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1 environment variable is required to set Firefox preferences. ' +
-          'Use restart_firefox with env parameter to enable.'
-      );
-    }
-
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();
 
@@ -154,14 +146,6 @@ export async function handleGetFirefoxPrefs(args: unknown): Promise<McpToolRespo
 
     if (!names || !Array.isArray(names) || names.length === 0) {
       throw new Error('names parameter is required and must be a non-empty array');
-    }
-
-    // Check for MOZ_REMOTE_ALLOW_SYSTEM_ACCESS
-    if (!process.env.MOZ_REMOTE_ALLOW_SYSTEM_ACCESS) {
-      throw new Error(
-        'MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1 environment variable is required to read Firefox preferences. ' +
-          'Use restart_firefox with env parameter to enable.'
-      );
     }
 
     const { getFirefox } = await import('../index.js');
