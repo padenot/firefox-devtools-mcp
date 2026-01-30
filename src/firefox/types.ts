@@ -60,6 +60,8 @@ export interface FirefoxLaunchOptions {
   acceptInsecureCerts?: boolean | undefined;
   env?: Record<string, string> | undefined;
   logFile?: string | undefined;
+  /** Firefox preferences to set at startup via Services.prefs API */
+  prefs?: Record<string, string | number | boolean> | undefined;
 }
 
 /**
