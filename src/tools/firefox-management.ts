@@ -193,6 +193,10 @@ export const restartFirefoxTool = {
         type: 'string',
         description: 'New Firefox binary path (optional, keeps current if not specified)',
       },
+      profilePath: {
+        type: 'string',
+        description: 'Firefox profile path (optional, keeps current if not specified)',
+      },
       env: {
         type: 'array',
         items: {
@@ -216,8 +220,9 @@ export const restartFirefoxTool = {
 
 export async function handleRestartFirefox(input: unknown) {
   try {
-    const { firefoxPath, env, headless, startUrl } = input as {
+    const { firefoxPath, profilePath, env, headless, startUrl } = input as {
       firefoxPath?: string;
+      profilePath?: string;
       env?: string[];
       headless?: boolean;
       startUrl?: string;
@@ -253,6 +258,7 @@ export async function handleRestartFirefox(input: unknown) {
       const newOptions = {
         ...currentOptions,
         firefoxPath: firefoxPath ?? currentOptions.firefoxPath,
+        profilePath: profilePath ?? currentOptions.profilePath,
         env: newEnv !== undefined ? newEnv : currentOptions.env,
         headless: headless !== undefined ? headless : currentOptions.headless,
         startUrl: startUrl ?? currentOptions.startUrl ?? 'about:home',
@@ -273,6 +279,9 @@ export async function handleRestartFirefox(input: unknown) {
       const changes = [];
       if (firefoxPath && firefoxPath !== currentOptions.firefoxPath) {
         changes.push(`Binary: ${firefoxPath}`);
+      }
+      if (profilePath && profilePath !== currentOptions.profilePath) {
+        changes.push(`Profile: ${profilePath}`);
       }
       if (newEnv !== undefined && JSON.stringify(newEnv) !== JSON.stringify(currentOptions.env)) {
         changes.push(`Environment variables updated:`);
@@ -316,6 +325,7 @@ export async function handleRestartFirefox(input: unknown) {
 
       const newOptions = {
         firefoxPath: resolvedFirefoxPath,
+        profilePath: profilePath ?? args.profilePath ?? undefined,
         env: newEnv,
         headless: headless ?? false,
         startUrl: startUrl ?? 'about:home',
@@ -324,6 +334,10 @@ export async function handleRestartFirefox(input: unknown) {
       setNextLaunchOptions(newOptions);
 
       const config = [`Binary: ${resolvedFirefoxPath}`];
+      const resolvedProfilePath = profilePath ?? args.profilePath;
+      if (resolvedProfilePath) {
+        config.push(`Profile: ${resolvedProfilePath}`);
+      }
       if (newEnv) {
         config.push('Environment variables:');
         for (const [key, value] of Object.entries(newEnv)) {
