@@ -1,6 +1,6 @@
 {
   "name": "@padenot/firefox-devtools-mcp",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Model Context Protocol (MCP) server for Firefox DevTools automation (fork with Firefox management tools)",
   "author": "padenot",
   "license": "MIT",
