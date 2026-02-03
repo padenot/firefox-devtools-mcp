@@ -99,6 +99,8 @@ You can pass flags or environment variables (names on the right):
 - `--pref name=value` — set Firefox preference at startup (repeatable, requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
 
 > **Note on `--pref`:** When Firefox runs in WebDriver BiDi mode, it applies [RecommendedPreferences](https://searchfox.org/firefox-main/source/remote/shared/RecommendedPreferences.sys.mjs) that modify browser behavior for testing. The `--pref` option allows overriding these defaults when needed (e.g., for Firefox development, debugging, or testing scenarios that require production-like behavior).
+>
+> **Example:** `--pref "browser.ml.enable=true"` enables Firefox's ML/AI features. This is essential when using this MCP server to develop or test AI-powered features like Smart Window, since RecommendedPreferences disables it by default.
 
 ## Tool overview
 

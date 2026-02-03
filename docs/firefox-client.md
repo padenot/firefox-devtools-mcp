@@ -166,23 +166,26 @@ When Firefox runs in WebDriver BiDi mode (automated testing), it applies [Recomm
 - Testing scenarios requiring production-like behavior
 - Enabling specific features disabled by RecommendedPreferences
 
+**Example:** The `browser.ml.enable` preference controls Firefox's ML/AI features. RecommendedPreferences disables this by default, making it impossible to use this MCP server to develop or test AI-powered features like Smart Window without explicitly enabling it.
+
 **Setting preferences:**
 
 At startup via CLI (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`):
 ```bash
-npx firefox-devtools-mcp --pref "browser.cache.disk.enable=true" --pref "dom.webnotifications.enabled=true"
+# Enable ML/AI features like Smart Window
+npx firefox-devtools-mcp --pref "browser.ml.enable=true"
 ```
 
 At runtime via tools:
 ```javascript
-// Set preferences
-await set_firefox_prefs({ prefs: { "browser.cache.disk.enable": true } });
+// Set preferences (e.g., enable ML features)
+await set_firefox_prefs({ prefs: { "browser.ml.enable": true } });
 
 // Get preference values
-await get_firefox_prefs({ names: ["browser.cache.disk.enable", "dom.webnotifications.enabled"] });
+await get_firefox_prefs({ names: ["browser.ml.enable"] });
 
 // Via restart_firefox
-await restart_firefox({ prefs: { "browser.cache.disk.enable": true } });
+await restart_firefox({ prefs: { "browser.ml.enable": true } });
 ```
 
 **Note:** Preference tools require `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` environment variable.
