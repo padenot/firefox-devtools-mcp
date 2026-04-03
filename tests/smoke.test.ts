@@ -48,18 +48,18 @@ describe('Smoke Tests', () => {
 
   describe('Tool schemas', () => {
     it('should have valid inputSchema for pages tools', async () => {
-      const { listPagesTool, selectPageTool, navigatePageTool } = await import(
+      const { listPagesTool, navigatePageTool } = await import(
         '../src/tools/pages.js'
       );
 
       expect(listPagesTool.inputSchema).toBeDefined();
       expect(listPagesTool.inputSchema.type).toBe('object');
 
-      expect(selectPageTool.inputSchema).toBeDefined();
-      expect(selectPageTool.inputSchema.type).toBe('object');
-
       expect(navigatePageTool.inputSchema).toBeDefined();
       expect(navigatePageTool.inputSchema.type).toBe('object');
+      // pageId must be a stable string handle, not a fragile numeric index
+      expect(navigatePageTool.inputSchema.properties?.pageId).toBeDefined();
+      expect(navigatePageTool.inputSchema.properties?.pageId.type).toBe('string');
     });
 
     it('should have valid inputSchema for snapshot tool', async () => {
@@ -68,6 +68,9 @@ describe('Smoke Tests', () => {
       expect(takeSnapshotTool.inputSchema).toBeDefined();
       expect(takeSnapshotTool.inputSchema.type).toBe('object');
       expect(takeSnapshotTool.inputSchema.properties).toBeDefined();
+      // pageId must be a stable string handle, not a fragile numeric index
+      expect(takeSnapshotTool.inputSchema.properties?.pageId).toBeDefined();
+      expect(takeSnapshotTool.inputSchema.properties?.pageId.type).toBe('string');
       expect(takeSnapshotTool.inputSchema.properties?.maxLines).toBeDefined();
       expect(takeSnapshotTool.inputSchema.properties?.includeAttributes).toBeDefined();
       expect(takeSnapshotTool.inputSchema.properties?.includeText).toBeDefined();

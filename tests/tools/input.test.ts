@@ -43,52 +43,70 @@ describe('Input Tools', () => {
   });
 
   describe('Schema Properties', () => {
-    it('clickByUidTool should require uid and accept dblClick', () => {
+    it('clickByUidTool should require stable pageId (string) and uid and accept dblClick', () => {
       const { properties, required } = clickByUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.uid).toBeDefined();
       expect(properties?.dblClick).toBeDefined();
+      expect(required).toContain('pageId');
       expect(required).toContain('uid');
     });
 
-    it('hoverByUidTool should require uid', () => {
+    it('hoverByUidTool should require stable pageId (string) and uid', () => {
       const { properties, required } = hoverByUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.uid).toBeDefined();
+      expect(required).toContain('pageId');
       expect(required).toContain('uid');
     });
 
-    it('fillByUidTool should require uid and value', () => {
+    it('fillByUidTool should require stable pageId (string), uid and value', () => {
       const { properties, required } = fillByUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.uid).toBeDefined();
       expect(properties?.value).toBeDefined();
+      expect(required).toContain('pageId');
       expect(required).toContain('uid');
       expect(required).toContain('value');
     });
 
-    it('dragByUidToUidTool should require fromUid and toUid', () => {
+    it('dragByUidToUidTool should require stable pageId (string), fromUid and toUid', () => {
       const { properties, required } = dragByUidToUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.fromUid).toBeDefined();
       expect(properties?.toUid).toBeDefined();
+      expect(required).toContain('pageId');
       expect(required).toContain('fromUid');
       expect(required).toContain('toUid');
     });
 
-    it('fillFormByUidTool should require elements array', () => {
+    it('fillFormByUidTool should require stable pageId (string) and elements array', () => {
       const { properties, required } = fillFormByUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.elements).toBeDefined();
       expect(properties?.elements.type).toBe('array');
+      expect(required).toContain('pageId');
       expect(required).toContain('elements');
     });
 
-    it('uploadFileByUidTool should require uid and filePath', () => {
+    it('uploadFileByUidTool should require stable pageId (string), uid and filePath', () => {
       const { properties, required } = uploadFileByUidTool.inputSchema;
       expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.uid).toBeDefined();
       expect(properties?.filePath).toBeDefined();
+      expect(required).toContain('pageId');
       expect(required).toContain('uid');
       expect(required).toContain('filePath');
     });

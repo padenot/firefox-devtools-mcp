@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   listPagesTool,
-  selectPageTool,
   navigatePageTool,
   newPageTool,
   closePageTool,
@@ -15,7 +14,6 @@ describe('Pages Tools', () => {
   describe('Tool Definitions', () => {
     it('should have correct tool names', () => {
       expect(listPagesTool.name).toBe('list_pages');
-      expect(selectPageTool.name).toBe('select_page');
       expect(navigatePageTool.name).toBe('navigate_page');
       expect(newPageTool.name).toBe('new_page');
       expect(closePageTool.name).toBe('close_page');
@@ -23,7 +21,6 @@ describe('Pages Tools', () => {
 
     it('should have valid descriptions', () => {
       expect(listPagesTool.description).toContain('tab');
-      expect(selectPageTool.description).toContain('Select');
       expect(navigatePageTool.description).toContain('Navigate');
       expect(newPageTool.description).toContain('new');
       expect(closePageTool.description).toContain('Close');
@@ -31,7 +28,6 @@ describe('Pages Tools', () => {
 
     it('should have valid input schemas', () => {
       expect(listPagesTool.inputSchema.type).toBe('object');
-      expect(selectPageTool.inputSchema.type).toBe('object');
       expect(navigatePageTool.inputSchema.type).toBe('object');
       expect(newPageTool.inputSchema.type).toBe('object');
       expect(closePageTool.inputSchema.type).toBe('object');
@@ -39,19 +35,15 @@ describe('Pages Tools', () => {
   });
 
   describe('Schema Properties', () => {
-    it('selectPageTool should accept pageIdx, url, or title', () => {
-      const { properties } = selectPageTool.inputSchema;
+    it('navigatePageTool should require stable pageId (string) and url', () => {
+      const { properties, required } = navigatePageTool.inputSchema;
       expect(properties).toBeDefined();
-      expect(properties?.pageIdx).toBeDefined();
-      expect(properties?.url).toBeDefined();
-      expect(properties?.title).toBeDefined();
-    });
-
-    it('navigatePageTool should require url', () => {
-      const { properties } = navigatePageTool.inputSchema;
-      expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
       expect(properties?.url).toBeDefined();
       expect(properties?.url.type).toBe('string');
+      expect(required).toContain('pageId');
+      expect(required).toContain('url');
     });
 
     it('newPageTool should accept url', () => {
@@ -60,11 +52,12 @@ describe('Pages Tools', () => {
       expect(properties?.url).toBeDefined();
     });
 
-    it('closePageTool should require pageIdx', () => {
+    it('closePageTool should require stable pageId (string)', () => {
       const { properties, required } = closePageTool.inputSchema;
       expect(properties).toBeDefined();
-      expect(properties?.pageIdx).toBeDefined();
-      expect(required).toContain('pageIdx');
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
+      expect(required).toContain('pageId');
     });
   });
 });

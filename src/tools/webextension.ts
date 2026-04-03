@@ -164,7 +164,8 @@ export const listExtensionsTool = {
       },
       isSystem: {
         type: 'boolean',
-        description: 'Optional: Filter by system/built-in (true) or user-installed (false) extensions',
+        description:
+          'Optional: Filter by system/built-in (true) or user-installed (false) extensions',
       },
     },
   },
@@ -184,9 +185,7 @@ interface ExtensionInfo {
 
 function formatExtensionList(extensions: ExtensionInfo[], filterId?: string): string {
   if (extensions.length === 0) {
-    return filterId
-      ? `🔍 Extension not found: ${filterId}`
-      : '📦 No extensions installed';
+    return filterId ? `🔍 Extension not found: ${filterId}` : '📦 No extensions installed';
   }
 
   const lines: string[] = [
@@ -219,12 +218,13 @@ function formatExtensionList(extensions: ExtensionInfo[], filterId?: string): st
 
 export async function handleListExtensions(args: unknown): Promise<McpToolResponse> {
   try {
-    const { ids, name, isActive, isSystem } = (args as {
-      ids?: string[];
-      name?: string;
-      isActive?: boolean;
-      isSystem?: boolean;
-    }) || {};
+    const { ids, name, isActive, isSystem } =
+      (args as {
+        ids?: string[];
+        name?: string;
+        isActive?: boolean;
+        isSystem?: boolean;
+      }) || {};
 
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();

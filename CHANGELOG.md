@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-04-03
+
+### Changed
+- Bump dependencies (`@modelcontextprotocol/sdk`, `selenium-webdriver`, `ws`, `dotenv`, `@types/node`)
+
+### Fixed
+- Fix integration tests to use stable window handle API from `createNewPage` instead of removed numeric index return
+- Handle scenario when Firefox is already open
+
 ## [0.7.1] - 2026-02-13
 
 ### Fixed

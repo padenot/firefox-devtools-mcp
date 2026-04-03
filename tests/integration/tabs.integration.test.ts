@@ -41,14 +41,14 @@ describe('Tab Management Integration Tests', () => {
     const initialTabCount = initialTabs.length;
 
     const fixturePath = `file://${fixturesPath}/simple.html`;
-    const newTabIndex = await firefox.createNewPage(fixturePath);
+    const newTabHandle = await firefox.createNewPage(fixturePath);
 
     await firefox.refreshTabs();
     const updatedTabs = firefox.getTabs();
 
     expect(updatedTabs.length).toBe(initialTabCount + 1);
-    expect(typeof newTabIndex).toBe('number');
-    expect(newTabIndex).toBeGreaterThanOrEqual(0);
+    expect(typeof newTabHandle).toBe('string');
+    expect(newTabHandle.length).toBeGreaterThan(0);
   }, 15000);
 
   it('should switch between tabs', async () => {
@@ -57,15 +57,18 @@ describe('Tab Management Integration Tests', () => {
 
     // Create second tab
     const fixturePath = `file://${fixturesPath}/form.html`;
-    const newTabIndex = await firefox.createNewPage(fixturePath);
+    const newTabHandle = await firefox.createNewPage(fixturePath);
 
     await firefox.refreshTabs();
 
     // Switch to new tab
-    await firefox.selectTab(newTabIndex);
+    await firefox.selectTabByHandle(newTabHandle);
 
+    await firefox.refreshTabs();
+    const tabs = firefox.getTabs();
+    const newTabIdx = tabs.findIndex(t => t.actor === newTabHandle);
     const selectedIdx = firefox.getSelectedTabIdx();
-    expect(selectedIdx).toBe(newTabIndex);
+    expect(selectedIdx).toBe(newTabIdx);
 
     // Switch back to first tab
     await firefox.selectTab(0);
@@ -105,10 +108,9 @@ describe('Tab Management Integration Tests', () => {
 
     await firefox.navigate(simplePath);
     await waitForPageLoad();
-    const tab1Index = firefox.getSelectedTabIdx();
 
-    const tab2Index = await firefox.createNewPage(formPath);
-    await firefox.selectTab(tab2Index);
+    const tab2Handle = await firefox.createNewPage(formPath);
+    await firefox.selectTabByHandle(tab2Handle);
     await waitForPageLoad();
 
     // Wait for form elements to appear in tab 2
@@ -129,7 +131,7 @@ describe('Tab Management Integration Tests', () => {
     expect(formElements.length).toBeGreaterThan(0);
 
     // Switch to tab 1 (simple page)
-    await firefox.selectTab(tab1Index);
+    await firefox.selectTab(0);
     await waitForPageLoad();
 
     // Wait for button to appear in tab 1

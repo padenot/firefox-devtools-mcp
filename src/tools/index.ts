@@ -7,12 +7,10 @@ export {
   listPagesTool,
   newPageTool,
   navigatePageTool,
-  selectPageTool,
   closePageTool,
   handleListPages,
   handleNewPage,
   handleNavigatePage,
-  handleSelectPage,
   handleClosePage,
 } from './pages.js';
 

@@ -258,6 +258,13 @@ export class FirefoxClient {
     return await this.pages.refreshTabs();
   }
 
+  async selectTabByHandle(handle: string): Promise<void> {
+    if (!this.pages) {
+      throw new Error('Not connected');
+    }
+    return await this.pages.selectTabByHandle(handle);
+  }
+
   async selectTab(index: number): Promise<void> {
     if (!this.pages) {
       throw new Error('Not connected');
@@ -265,11 +272,18 @@ export class FirefoxClient {
     return await this.pages.selectTab(index);
   }
 
-  async createNewPage(url: string): Promise<number> {
+  async createNewPage(url: string): Promise<string> {
     if (!this.pages) {
       throw new Error('Not connected');
     }
     return await this.pages.createNewPage(url);
+  }
+
+  async closeTabByHandle(handle: string): Promise<void> {
+    if (!this.pages) {
+      throw new Error('Not connected');
+    }
+    return await this.pages.closeTabByHandle(handle);
   }
 
   async closeTab(index: number): Promise<void> {

@@ -21,6 +21,14 @@ describe('Script Tools', () => {
   });
 
   describe('Schema Properties', () => {
+    it('should require stable pageId (string) parameter', () => {
+      const { properties, required } = evaluateScriptTool.inputSchema;
+      expect(properties).toBeDefined();
+      expect(properties?.pageId).toBeDefined();
+      expect(properties?.pageId.type).toBe('string');
+      expect(required).toContain('pageId');
+    });
+
     it('should require function parameter', () => {
       const { properties, required } = evaluateScriptTool.inputSchema;
       expect(properties).toBeDefined();

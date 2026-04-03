@@ -164,7 +164,6 @@ const toolHandlers = new Map<string, (input: unknown) => Promise<McpToolResponse
   ['list_pages', tools.handleListPages],
   ['new_page', tools.handleNewPage],
   ['navigate_page', tools.handleNavigatePage],
-  ['select_page', tools.handleSelectPage],
   ['close_page', tools.handleClosePage],
 
   // Script evaluation
@@ -227,7 +226,6 @@ const allTools = [
   tools.listPagesTool,
   tools.newPageTool,
   tools.navigatePageTool,
-  tools.selectPageTool,
   tools.closePageTool,
 
   // Script evaluation

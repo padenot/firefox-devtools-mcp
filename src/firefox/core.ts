@@ -4,9 +4,10 @@
 
 import { Builder, Browser, WebDriver } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
-import { mkdirSync, openSync, closeSync } from 'node:fs';
+import { mkdirSync, openSync, closeSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
+import { execSync } from 'node:child_process';
 import type { FirefoxLaunchOptions } from './types.js';
 import { log, logDebug } from '../utils/logger.js';
 import { generatePrefScript } from './pref-utils.js';
@@ -19,6 +20,67 @@ export class FirefoxCore {
   private logFileFd: number | undefined;
 
   constructor(private options: FirefoxLaunchOptions) {}
+
+  /**
+   * Check if a Firefox/browser process is already running, and whether the
+   * target profile is locked. Returns a diagnostic object.
+   *
+   * UPSTREAM: This diagnostic is a workaround for geckodriver's lack of
+   * profile-lock detection. When Firefox exits with status 0 because an
+   * existing instance owns the profile, geckodriver only reports "Process
+   * unexpectedly closed with status 0" (see geckodriver source:
+   * testing/geckodriver/src/marionette.rs, MarionetteConnection::connect()).
+   * Ideally geckodriver or mozrunner should detect .parentlock files and
+   * immediate process exit, then return a specific error like "Firefox profile
+   * is already in use by another instance". No upstream issue exists for this
+   * as of 2025-04. Related issues:
+   *   - https://github.com/mozilla/geckodriver/issues/2179 (connecting to
+   *     existing Firefox, different scenario, closed)
+   *   - https://github.com/SeleniumHQ/selenium/issues/15327 (Chrome/Edge
+   *     profile lock detection, closed as chromedriver's responsibility)
+   * A geckodriver issue should be filed proposing that LocalBrowser::new() in
+   * testing/geckodriver/src/browser.rs check for .parentlock after
+   * runner.start() and provide a descriptive error when the process exits
+   * immediately with status 0.
+   */
+  private diagnoseExistingBrowser(): {
+    browserRunning: boolean;
+    profileLocked: boolean;
+    runningProcesses: string[];
+    binaryName: string;
+  } {
+    const binaryPath = this.options.firefoxPath || 'firefox';
+    const binaryName = basename(binaryPath);
+
+    // Check for running browser processes
+    let runningProcesses: string[] = [];
+    try {
+      const psOutput = execSync(
+        `ps aux | grep -i "${binaryName}" | grep -v grep | grep -v firefox-devtools-mcp`,
+        { encoding: 'utf-8', timeout: 5000 }
+      ).trim();
+      if (psOutput) {
+        runningProcesses = psOutput.split('\n').filter(Boolean);
+      }
+    } catch {
+      // grep returns exit code 1 when no matches found — that's fine
+    }
+
+    // Check if the profile directory has a .parentlock file
+    let profileLocked = false;
+    if (this.options.profilePath) {
+      const parentLock = join(this.options.profilePath, '.parentlock');
+      const lockFile = join(this.options.profilePath, 'lock');
+      profileLocked = existsSync(parentLock) || existsSync(lockFile);
+    }
+
+    return {
+      browserRunning: runningProcesses.length > 0,
+      profileLocked,
+      runningProcesses,
+      binaryName,
+    };
+  }
 
   /**
    * Launch Firefox and establish BiDi connection
@@ -102,11 +164,73 @@ export class FirefoxCore {
     }
 
     // Build WebDriver instance
-    this.driver = await new Builder()
-      .forBrowser(Browser.FIREFOX)
-      .setFirefoxOptions(firefoxOptions)
-      .setFirefoxService(serviceBuilder)
-      .build();
+    // UPSTREAM: The catch block below works around geckodriver's unhelpful error
+    // message when Firefox exits immediately due to profile locking. See the
+    // upstream comment on diagnoseExistingBrowser() above.
+    try {
+      this.driver = await new Builder()
+        .forBrowser(Browser.FIREFOX)
+        .setFirefoxOptions(firefoxOptions)
+        .setFirefoxService(serviceBuilder)
+        .build();
+    } catch (launchError: unknown) {
+      const errorMessage = launchError instanceof Error ? launchError.message : String(launchError);
+
+      // Detect the "process exited immediately" scenario
+      if (
+        errorMessage.includes('Process unexpectedly closed with status 0') ||
+        errorMessage.includes('Process unexpectedly closed with status') ||
+        errorMessage.includes('Unable to obtain browser driver')
+      ) {
+        const diag = this.diagnoseExistingBrowser();
+        const hints: string[] = [];
+
+        if (diag.browserRunning) {
+          hints.push(
+            `DIAGNOSIS: Found ${diag.runningProcesses.length} running "${diag.binaryName}" process(es). ` +
+              `Firefox-based browsers can only run one instance per profile at a time. ` +
+              `The launched process exited immediately because it handed off to the already-running instance, ` +
+              `and the WebDriver lost its connection.`
+          );
+          hints.push(
+            `FIX: Quit all instances of "${diag.binaryName}" (including all profiles/windows) before retrying. ` +
+              `On macOS: Cmd+Q or "pkill -f ${diag.binaryName}". Then call restart_firefox to let this server launch its own instance.`
+          );
+        }
+
+        if (diag.profileLocked && this.options.profilePath) {
+          hints.push(
+            `DIAGNOSIS: The profile at "${this.options.profilePath}" has a lock file (.parentlock), ` +
+              `indicating another browser instance is using it or was not shut down cleanly.`
+          );
+          if (!diag.browserRunning) {
+            hints.push(
+              `FIX: No running browser was detected, so the lock file may be stale from a crash. ` +
+                `Try deleting the lock file: rm "${join(this.options.profilePath, '.parentlock')}" ` +
+                `and then retry.`
+            );
+          }
+        }
+
+        if (hints.length === 0) {
+          hints.push(
+            `DIAGNOSIS: The browser process exited immediately after launch (status 0) but no running ` +
+              `browser instance was detected. This could be a geckodriver or binary compatibility issue. ` +
+              `Check that the Firefox binary path is correct and that geckodriver is compatible.`
+          );
+        }
+
+        const diagnosticMessage = [`Failed to launch browser: ${errorMessage}`, '', ...hints].join(
+          '\n'
+        );
+
+        log(diagnosticMessage);
+        throw new Error(diagnosticMessage);
+      }
+
+      // For other errors, re-throw as-is
+      throw launchError;
+    }
 
     log('✅ Firefox launched with BiDi');
 

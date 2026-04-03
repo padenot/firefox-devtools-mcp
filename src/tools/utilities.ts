@@ -12,11 +12,16 @@ export const acceptDialogTool = {
   inputSchema: {
     type: 'object',
     properties: {
+      pageId: {
+        type: 'string',
+        description: 'Stable tab ID from list_pages',
+      },
       promptText: {
         type: 'string',
         description: 'Text for prompt dialogs',
       },
     },
+    required: ['pageId'],
   },
 };
 
@@ -25,7 +30,13 @@ export const dismissDialogTool = {
   description: 'Dismiss browser dialog.',
   inputSchema: {
     type: 'object',
-    properties: {},
+    properties: {
+      pageId: {
+        type: 'string',
+        description: 'Stable tab ID from list_pages',
+      },
+    },
+    required: ['pageId'],
   },
 };
 
@@ -36,13 +47,17 @@ export const navigateHistoryTool = {
   inputSchema: {
     type: 'object',
     properties: {
+      pageId: {
+        type: 'string',
+        description: 'Stable tab ID from list_pages',
+      },
       direction: {
         type: 'string',
         enum: ['back', 'forward'],
         description: 'back or forward',
       },
     },
-    required: ['direction'],
+    required: ['pageId', 'direction'],
   },
 };
 
@@ -53,6 +68,10 @@ export const setViewportSizeTool = {
   inputSchema: {
     type: 'object',
     properties: {
+      pageId: {
+        type: 'string',
+        description: 'Stable tab ID from list_pages',
+      },
       width: {
         type: 'number',
         description: 'Width in pixels',
@@ -62,18 +81,23 @@ export const setViewportSizeTool = {
         description: 'Height in pixels',
       },
     },
-    required: ['width', 'height'],
+    required: ['pageId', 'width', 'height'],
   },
 };
 
 // Handlers - Dialogs
 export async function handleAcceptDialog(args: unknown): Promise<McpToolResponse> {
   try {
-    const { promptText } = (args as { promptText?: string }) || {};
+    const { pageId, promptText } = (args as { pageId: string; promptText?: string }) || {};
+
+    if (!pageId || typeof pageId !== 'string') {
+      throw new Error('pageId parameter is required and must be a string');
+    }
 
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();
 
+    await firefox.selectTabByHandle(pageId);
     try {
       await firefox.acceptDialog(promptText);
       return successResponse(promptText ? `✅ Accepted: "${promptText}"` : '✅ Accepted');
@@ -92,11 +116,18 @@ export async function handleAcceptDialog(args: unknown): Promise<McpToolResponse
   }
 }
 
-export async function handleDismissDialog(_args: unknown): Promise<McpToolResponse> {
+export async function handleDismissDialog(args: unknown): Promise<McpToolResponse> {
   try {
+    const { pageId } = (args as { pageId: string }) || {};
+
+    if (!pageId || typeof pageId !== 'string') {
+      throw new Error('pageId parameter is required and must be a string');
+    }
+
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();
 
+    await firefox.selectTabByHandle(pageId);
     try {
       await firefox.dismissDialog();
       return successResponse('✅ Dismissed');
@@ -118,7 +149,11 @@ export async function handleDismissDialog(_args: unknown): Promise<McpToolRespon
 // Handlers - History
 export async function handleNavigateHistory(args: unknown): Promise<McpToolResponse> {
   try {
-    const { direction } = args as { direction: 'back' | 'forward' };
+    const { pageId, direction } = args as { pageId: string; direction: 'back' | 'forward' };
+
+    if (!pageId || typeof pageId !== 'string') {
+      throw new Error('pageId parameter is required and must be a string');
+    }
 
     if (!direction || (direction !== 'back' && direction !== 'forward')) {
       throw new Error('direction parameter is required and must be "back" or "forward"');
@@ -127,6 +162,7 @@ export async function handleNavigateHistory(args: unknown): Promise<McpToolRespo
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();
 
+    await firefox.selectTabByHandle(pageId);
     if (direction === 'back') {
       await firefox.navigateBack();
     } else {
@@ -142,7 +178,11 @@ export async function handleNavigateHistory(args: unknown): Promise<McpToolRespo
 // Handlers - Viewport
 export async function handleSetViewportSize(args: unknown): Promise<McpToolResponse> {
   try {
-    const { width, height } = args as { width: number; height: number };
+    const { pageId, width, height } = args as { pageId: string; width: number; height: number };
+
+    if (!pageId || typeof pageId !== 'string') {
+      throw new Error('pageId parameter is required and must be a string');
+    }
 
     if (typeof width !== 'number' || width <= 0) {
       throw new Error('width parameter is required and must be a positive number');
@@ -155,6 +195,7 @@ export async function handleSetViewportSize(args: unknown): Promise<McpToolRespo
     const { getFirefox } = await import('../index.js');
     const firefox = await getFirefox();
 
+    await firefox.selectTabByHandle(pageId);
     await firefox.setViewportSize(width, height);
 
     return successResponse(`✅ ${width}x${height}`);
