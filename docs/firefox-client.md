@@ -170,13 +170,13 @@ When Firefox runs in WebDriver BiDi mode (automated testing), it applies [Recomm
 
 **Setting preferences:**
 
-At startup via CLI (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`):
+At startup via CLI:
 ```bash
 # Enable ML/AI features like Smart Window
 npx firefox-devtools-mcp --pref "browser.ml.enable=true"
 ```
 
-At runtime via tools:
+At runtime via tools (requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`):
 ```javascript
 // Set preferences (e.g., enable ML features)
 await set_firefox_prefs({ prefs: { "browser.ml.enable": true } });

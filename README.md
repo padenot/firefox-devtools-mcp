@@ -96,7 +96,7 @@ You can pass flags or environment variables (names on the right):
 - `--firefox-arg` — extra Firefox arguments (repeatable)
 - `--start-url` — open this URL on start (`START_URL`)
 - `--accept-insecure-certs` — ignore TLS errors (`ACCEPT_INSECURE_CERTS=true`)
-- `--pref name=value` — set Firefox preference at startup (repeatable, requires `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1`)
+- `--pref name=value` — set Firefox preference at startup via `moz:firefoxOptions` (repeatable)
 
 > **Note on `--pref`:** When Firefox runs in WebDriver BiDi mode, it applies [RecommendedPreferences](https://searchfox.org/firefox-main/source/remote/shared/RecommendedPreferences.sys.mjs) that modify browser behavior for testing. The `--pref` option allows overriding these defaults when needed (e.g., for Firefox development, debugging, or testing scenarios that require production-like behavior).
 >

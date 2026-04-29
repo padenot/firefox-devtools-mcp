@@ -113,7 +113,7 @@ export const cliOptions = {
     type: 'array',
     string: true,
     description:
-      'Set Firefox preference at startup (format: name=value). Can be specified multiple times. Requires MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1.',
+      'Set Firefox preference at startup via moz:firefoxOptions (format: name=value). Can be specified multiple times.',
     alias: 'p',
   },
 } satisfies Record<string, YargsOptions>;
