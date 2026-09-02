@@ -60,6 +60,31 @@ let firefox: FirefoxDevTools | null = null;
 let nextLaunchOptions: FirefoxLaunchOptions | null = null;
 
 /**
+ * Best-effort, bounded quit of a Firefox instance.
+ *
+ * `driver.quit()` is an HTTP round-trip to geckodriver; if geckodriver is
+ * wedged it never resolves, so every close path races it against a timeout
+ * rather than letting a tool call (or shutdown) hang forever. Errors are
+ * logged, never thrown - the caller is always tearing the instance down.
+ */
+async function closeQuietly(
+  instance: FirefoxDevTools,
+  context: string,
+  timeoutMs = 5000
+): Promise<void> {
+  try {
+    await Promise.race([
+      instance.close(),
+      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs).unref()),
+    ]);
+  } catch (error) {
+    logDebug(
+      `Error closing Firefox ${context}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
  * Reset Firefox instance (used when disconnection is detected)
  *
  * Best-effort quits the underlying WebDriver/Firefox process before dropping
@@ -69,13 +94,7 @@ let nextLaunchOptions: FirefoxLaunchOptions | null = null;
  */
 export async function resetFirefox(): Promise<void> {
   if (firefox) {
-    try {
-      await firefox.close();
-    } catch (error) {
-      logDebug(
-        `Error closing Firefox during reset: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
+    await closeQuietly(firefox, 'during reset');
     firefox.reset();
     firefox = null;
   }
@@ -172,13 +191,7 @@ export async function getFirefox(): Promise<FirefoxDevTools> {
     const failedFirefox = firefox;
     firefox = null;
     if (failedFirefox) {
-      try {
-        await failedFirefox.close();
-      } catch (closeError) {
-        logDebug(
-          `Error closing Firefox after failed connect: ${closeError instanceof Error ? closeError.message : String(closeError)}`
-        );
-      }
+      await closeQuietly(failedFirefox, 'after failed connect');
     }
     throw error;
   }
@@ -388,18 +401,7 @@ async function main() {
     shuttingDown = true;
     logDebug(`Shutting down (${reason})...`);
     if (firefox) {
-      try {
-        // Bound the quit so a wedged driver can never keep this process
-        // (and therefore Firefox) alive past shutdown.
-        await Promise.race([
-          firefox.close(),
-          new Promise<void>((resolve) => setTimeout(resolve, 5000).unref()),
-        ]);
-      } catch (error) {
-        logDebug(
-          `Error closing Firefox during shutdown: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
+      await closeQuietly(firefox, 'during shutdown');
       firefox = null;
     }
     process.exit(0);
