@@ -61,9 +61,21 @@ let nextLaunchOptions: FirefoxLaunchOptions | null = null;
 
 /**
  * Reset Firefox instance (used when disconnection is detected)
+ *
+ * Best-effort quits the underlying WebDriver/Firefox process before dropping
+ * the reference. Previously this only nulled the reference (`firefox.reset()`
+ * clears in-memory state but never calls `driver.quit()`), which left
+ * geckodriver + Firefox running with nothing left to close them.
  */
-export function resetFirefox(): void {
+export async function resetFirefox(): Promise<void> {
   if (firefox) {
+    try {
+      await firefox.close();
+    } catch (error) {
+      logDebug(
+        `Error closing Firefox during reset: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     firefox.reset();
     firefox = null;
   }
@@ -99,7 +111,7 @@ export async function getFirefox(): Promise<FirefoxDevTools> {
     const isConnected = await firefox.isConnected();
     if (!isConnected) {
       log('Firefox connection lost - browser was closed or disconnected');
-      resetFirefox();
+      await resetFirefox();
       throw new FirefoxDisconnectedError('Browser was closed');
     }
     return firefox;
@@ -152,8 +164,22 @@ export async function getFirefox(): Promise<FirefoxDevTools> {
     log('Firefox DevTools connection established');
     return firefox;
   } catch (error) {
-    // Connection failed, clean up the failed instance
+    // Connection failed. By this point geckodriver + Firefox may already be
+    // spawned (connect() assigns the WebDriver before it navigates to
+    // startUrl), so best-effort quit the driver before dropping the
+    // reference - otherwise the browser process is stranded and every
+    // subsequent tool call spawns a brand new one on top of it.
+    const failedFirefox = firefox;
     firefox = null;
+    if (failedFirefox) {
+      try {
+        await failedFirefox.close();
+      } catch (closeError) {
+        logDebug(
+          `Error closing Firefox after failed connect: ${closeError instanceof Error ? closeError.message : String(closeError)}`
+        );
+      }
+    }
     throw error;
   }
 }
@@ -349,6 +375,39 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // Ensure geckodriver + Firefox never outlive this process. There was
+  // previously no shutdown handler at all: a SIGTERM/SIGINT, or the MCP
+  // host closing stdin (its normal way of ending a stdio server), left a
+  // running Firefox + geckodriver process with no owner to close it.
+  let shuttingDown = false;
+  const shutdown = async (reason: string): Promise<void> => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logDebug(`Shutting down (${reason})...`);
+    if (firefox) {
+      try {
+        // Bound the quit so a wedged driver can never keep this process
+        // (and therefore Firefox) alive past shutdown.
+        await Promise.race([
+          firefox.close(),
+          new Promise<void>((resolve) => setTimeout(resolve, 5000).unref()),
+        ]);
+      } catch (error) {
+        logDebug(
+          `Error closing Firefox during shutdown: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      firefox = null;
+    }
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.stdin.on('end', () => void shutdown('stdin end'));
+  process.stdin.on('close', () => void shutdown('stdin close'));
 
   log('Firefox DevTools MCP server running on stdio');
   log('Ready to accept tool requests');

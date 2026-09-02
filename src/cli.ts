@@ -96,8 +96,13 @@ export const cliOptions = {
   },
   startUrl: {
     type: 'string',
-    description: 'URL to open when Firefox starts (default: about:home)',
-    default: process.env.START_URL ?? 'about:home',
+    description: 'URL to open when Firefox starts (default: about:blank)',
+    // about:home is rejected by Firefox's WebDriver navigation allowlist as of
+    // Firefox 155 ("Navigation to "about:home" is not allowed in this
+    // context"), which throws immediately after Firefox/geckodriver have
+    // already been spawned. about:blank is always navigable and keeps
+    // startup working across Firefox versions.
+    default: process.env.START_URL ?? 'about:blank',
   },
   env: {
     type: 'array',

@@ -220,7 +220,7 @@ export const restartFirefoxTool = {
       startUrl: {
         type: 'string',
         description:
-          'URL to navigate to after restart (optional, uses about:home if not specified)',
+          'URL to navigate to after restart (optional, uses about:blank if not specified)',
       },
       prefs: {
         type: 'object',
@@ -282,7 +282,7 @@ export async function handleRestartFirefox(input: unknown) {
         profilePath: profilePath ?? currentOptions.profilePath,
         env: newEnv !== undefined ? newEnv : currentOptions.env,
         headless: headless !== undefined ? headless : currentOptions.headless,
-        startUrl: startUrl ?? currentOptions.startUrl ?? 'about:home',
+        startUrl: startUrl ?? currentOptions.startUrl ?? 'about:blank',
         prefs: mergedPrefs,
       };
 
@@ -295,7 +295,7 @@ export async function handleRestartFirefox(input: unknown) {
       } catch (error) {
         // Ignore close errors - we'll reset anyway
       }
-      resetFirefox();
+      await resetFirefox();
 
       // Prepare change summary
       const changes = [];
@@ -331,7 +331,7 @@ export async function handleRestartFirefox(input: unknown) {
       // Firefox not running (or disconnected) - configure for first start
       if (currentFirefox) {
         // Had a stale disconnected reference, clean it up
-        resetFirefox();
+        await resetFirefox();
       }
 
       // Use provided firefoxPath, or fall back to CLI args if available
@@ -350,7 +350,7 @@ export async function handleRestartFirefox(input: unknown) {
         profilePath: profilePath ?? args.profilePath ?? undefined,
         env: newEnv,
         headless: headless ?? false,
-        startUrl: startUrl ?? 'about:home',
+        startUrl: startUrl ?? 'about:blank',
       };
 
       setNextLaunchOptions(newOptions);
